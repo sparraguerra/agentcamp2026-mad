@@ -1,0 +1,7 @@
+# Development environment configuration
+environment         = "dev"
+location           = "eastus"
+app_service_sku    = "B1"
+jwt_issuer         = "DndCopilotApi"
+jwt_audience       = "DndCopilotClient"
+# jwt_secret_key is set via environment variable TF_VAR_jwt_secret_key or via Azure DevOps/GitHub Actions

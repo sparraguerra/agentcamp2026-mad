@@ -1,0 +1,62 @@
+services:
+  # --- API (.NET) ---
+  api:
+    build:
+      context: .
+      dockerfile: src/DndCopilot.Api/Dockerfile
+    ports:
+      - "5000:5000"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - Dapr__HttpPort=3500
+    networks:
+      - dnd-network
+    depends_on:
+      - placement
+
+  # --- Dapr sidecar for the API ---
+  api-dapr:
+    image: "daprio/daprd:latest"
+    command:
+      [
+        "./daprd",
+        "--app-id", "dndcopilot-api",
+        "--app-port", "5000",
+        "--dapr-http-port", "3500",
+        "--dapr-grpc-port", "50001",
+        "--placement-host-address", "placement:50006",
+        "--resources-path", "/components",
+      ]
+    volumes:
+      - ./components:/components
+    network_mode: "service:api"
+    depends_on:
+      - api
+      - placement
+
+  # --- Frontend (React + nginx) ---
+  frontend:
+    build:
+      context: .
+      dockerfile: client/Dockerfile
+      args:
+        VITE_API_URL: http://localhost:5000/api
+    ports:
+      - "3000:80"
+    networks:
+      - dnd-network
+    depends_on:
+      - api
+
+  # --- Dapr placement service ---
+  placement:
+    image: "daprio/placement:latest"
+    command: ["./placement", "--port", "50006"]
+    ports:
+      - "50006:50006"
+    networks:
+      - dnd-network
+
+networks:
+  dnd-network:
+    driver: bridge
